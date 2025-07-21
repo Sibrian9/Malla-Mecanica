@@ -4,13 +4,25 @@
   <meta charset="UTF-8">
   <title>Malla Curricular Ingeniería Mecánica</title>
   <style>
-    /* (El estilo permanece igual que antes para mantener apariencia limpia) */
+    body { font-family: sans-serif; margin: 20px; background: #f9f9f9; }
+    h1 { text-align: center; }
+    .grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .ciclo { background: #fff; border: 1px solid #ccc; padding: 10px; border-radius: 8px; width: 200px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    .materia { padding: 6px; border-radius: 4px; margin-bottom: 5px; cursor: pointer; font-size: 0.9em; }
+    .aprobada { background: #b6fcb6; }
+    .pendiente { background: #f0f0f0; }
+    .bloqueada { background: #ddd; cursor: not-allowed; }
+    .electiva { border-left: 4px solid #9999ff; }
+    #resumen { text-align: center; font-weight: bold; margin: 10px; }
+    #controles { text-align: center; margin: 10px; }
+    button { padding: 5px 10px; font-size: 1em; cursor: pointer; }
   </style>
 </head>
 <body>
   <h1>Malla Curricular Ingeniería Mecánica</h1>
-  <div style="text-align:center; margin-bottom: 10px;">
+  <div id="controles">
     <label><input type="checkbox" id="modoCiclo"> Activar lógica de ciclos pares/impares</label>
+    <button id="btnAplicar">Aplicar desbloqueos</button>
   </div>
   <div id="resumen">0 materias aprobadas</div>
   <div class="grid" id="malla"></div>
@@ -28,13 +40,20 @@
 
     const estado = JSON.parse(localStorage.getItem("malla_aprobadas") || "{}");
     let modoCiclo = localStorage.getItem("modo_ciclo") === "true";
-    const actualizadores = [], materiasTotal = [], materiasElectivas = [];
+    const actualizadores = [], materiasTotal = [], materiasElectivas = [], materiasMeta = [];
+
+    const cicloMap = {};
+    const desbloqueoPendiente = {};
 
     document.getElementById("modoCiclo").checked = modoCiclo;
     document.getElementById("modoCiclo").addEventListener("change", e => {
       modoCiclo = e.target.checked;
       localStorage.setItem("modo_ciclo", modoCiclo);
+    });
+
+    document.getElementById("btnAplicar").addEventListener("click", () => {
       actualizarTodo();
+      guardarEstado();
     });
 
     function guardarEstado() {
@@ -49,62 +68,59 @@
         div.classList.add("electiva");
         materiasElectivas.push(id);
       }
-      div.textContent = `${nombre} (${id})`;
       materiasTotal.push(id);
+      materiasMeta.push({ id, requisitos, cicloNumero });
+      cicloMap[id] = cicloNumero;
+      div.textContent = `${nombre} (${id})`;
 
-      function actualizarEstado() {
-        let bloqueada = requisitos.length && !requisitos.every(r => estado[r]);
+      div.addEventListener("click", () => {
+        estado[id] = !estado[id];
+        actualizarResumen();
+        guardarEstado();
+        actualizarVisual(div, id, requisitos, electiva, cicloNumero);
+      });
 
-        // Restricción por ciclo par/impar (excepto MEF115)
-        if (modoCiclo && id !== "MEF115") {
-          const cicloImpar = cicloNumero % 2 === 1;
-          const ciclosActivos = materiasTotal.filter(cid => estado[cid])
-            .map(cid => cicloMap[cid])
-            .filter(n => n % 2 === (cicloImpar ? 1 : 0));
-          if (ciclosActivos.length && ciclosActivos.some(n => n % 2 !== cicloNumero % 2)) {
-            bloqueada = true;
-          }
-        }
+      return { div, actualizar: () => actualizarVisual(div, id, requisitos, electiva, cicloNumero) };
+    }
 
-        div.classList.remove("bloqueada", "aprobada", "pendiente");
-        if (estado[id]) {
-          div.classList.add("aprobada");
-        } else if (bloqueada) {
-          div.classList.add("bloqueada");
-        } else {
-          div.classList.add("pendiente");
+    function actualizarVisual(div, id, requisitos, electiva, cicloNumero) {
+      let bloqueada = requisitos.length && !requisitos.every(r => estado[r]);
+
+      if (modoCiclo && id !== "MEF115") {
+        const cicloImpar = cicloNumero % 2 === 1;
+        const ciclosActivos = materiasTotal.filter(cid => estado[cid])
+          .map(cid => cicloMap[cid])
+          .filter(n => n % 2 === (cicloImpar ? 1 : 0));
+        if (ciclosActivos.length && ciclosActivos.some(n => n % 2 !== cicloNumero % 2)) {
+          bloqueada = true;
         }
       }
 
-      div.addEventListener("click", () => {
-        if (div.classList.contains("bloqueada")) return;
-        estado[id] = !estado[id];
-        guardarEstado();
-        actualizarTodo();
-      });
-
-      return { div, actualizarEstado };
+      div.classList.remove("bloqueada", "aprobada", "pendiente");
+      if (estado[id]) {
+        div.classList.add("aprobada");
+      } else if (bloqueada) {
+        div.classList.add("bloqueada");
+      } else {
+        div.classList.add("pendiente");
+      }
     }
 
-    const cicloMap = {}; // Mapea materia a número de ciclo
     const malla = document.getElementById("malla");
-    let cicloNum = 1;
     for (const ciclo in data) {
       const col = document.createElement("div");
       col.className = "ciclo";
       const title = document.createElement("h2");
       title.textContent = ciclo;
       col.appendChild(title);
+      const numero = parseInt(ciclo.match(/\d+/)?.[0]);
 
       data[ciclo].forEach(([id, nombre, requisitos, electiva]) => {
-        cicloMap[id] = cicloNum;
-        const { div, actualizarEstado } = crearMateria(id, nombre, requisitos, electiva, cicloNum);
+        const { div, actualizar } = crearMateria(id, nombre, requisitos, electiva, numero);
+        actualizadores.push(actualizar);
         col.appendChild(div);
-        actualizadores.push(actualizarEstado);
       });
-
       malla.appendChild(col);
-      cicloNum++;
     }
 
     function actualizarResumen() {
