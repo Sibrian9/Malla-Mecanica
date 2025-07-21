@@ -4,63 +4,147 @@
   <meta charset="UTF-8">
   <title>Malla Curricular Ingeniería Mecánica</title>
   <style>
-    body { font-family: sans-serif; margin: 20px; background: #f9f9f9; }
-    h1 { text-align: center; }
-    .grid { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
-    .ciclo { background: #fff; border: 1px solid #ccc; padding: 10px; border-radius: 8px; width: 200px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-    .materia { padding: 6px; border-radius: 4px; margin-bottom: 5px; cursor: pointer; font-size: 0.9em; }
-    .aprobada { background: #b6fcb6; }
-    .pendiente { background: #f0f0f0; }
-    .bloqueada { background: #ddd; cursor: not-allowed; }
-    .electiva { border-left: 4px solid #9999ff; }
-    #resumen { text-align: center; font-weight: bold; margin: 10px; }
-    #controles { text-align: center; margin: 10px; }
-    button { padding: 5px 10px; font-size: 1em; cursor: pointer; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f4f6f9;
+      color: #333;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    #resumen {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .grid {
+      display: flex;
+      overflow-x: auto;
+      gap: 20px;
+    }
+    .ciclo {
+      min-width: 220px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      padding: 15px;
+      flex-shrink: 0;
+    }
+    .ciclo h2 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #0066cc;
+    }
+    .materia {
+      margin: 6px 0;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease, border 0.2s ease;
+      position: relative;
+      border: 2px solid transparent;
+    }
+    .materia:hover {
+      background: #e9f5ff;
+    }
+    .materia.aprobada {
+      background: #c8f7c5;
+      text-decoration: line-through;
+    }
+    .materia.bloqueada {
+      background: #f0f0f0;
+      color: #999;
+      cursor: not-allowed;
+    }
+    .materia.electiva {
+      background: #fff3cd;
+    }
+    .materia.pendiente {
+      border: 2px dashed #bbb;
+      background: #fefefe;
+    }
+    .tooltip {
+      position: absolute;
+      top: 0;
+      left: 105%;
+      background: #333;
+      color: #fff;
+      padding: 6px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+      font-size: 12px;
+      z-index: 10;
+      display: none;
+    }
+    .materia.bloqueada:hover .tooltip {
+      display: block;
+    }
+    .botones {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .botones button {
+      margin: 5px;
+      padding: 8px 12px;
+      font-weight: bold;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      background: #0066cc;
+      color: white;
+      transition: background 0.2s ease;
+    }
+    .botones button:hover {
+      background: #005bb5;
+    }
+    .oculto {
+      display: none;
+    }
   </style>
 </head>
 <body>
   <h1>Malla Curricular Ingeniería Mecánica</h1>
-  <div id="controles">
-    <label><input type="checkbox" id="modoCiclo"> Activar lógica de ciclos pares/impares</label>
-    <button id="btnAplicar">Aplicar desbloqueos</button>
+  <div id="resumen">0 materias aprobadas de 0 (0%)</div>
+
+  <div class="botones">
+    <button onclick="mostrarTodos()">Mostrar Todos</button>
+    <button onclick="mostrarImpares()">Mostrar Ciclos Impares</button>
+    <button onclick="mostrarPares()">Mostrar Ciclos Pares</button>
+    <button onclick="desbloquearPorAprobadas()">Desbloquear Siguientes</button>
   </div>
-  <div id="resumen">0 materias aprobadas</div>
+
   <div class="grid" id="malla"></div>
+
   <script>
     const data = {
-      "Ciclo 1": [["CGR115", "Comunicación espacial gráfica", []], ["MAT115", "Matemática I", []], ["MTE115", "Métodos experimentales", []], ["PSI115", "Psicología Social", []]],
-      "Ciclo 2": [["DIT115", "Dibujo Técnico", ["CGR115"]], ["FIR115", "Física I", ["MAT115", "MTE115"]], ["MAT215", "Matemática II", ["MAT115"]], ["HSE115", "Historia social y económica", ["PSI115"]], ["QTR115", "Química Técnica", ["MTE115"]]],
-      "Ciclo 3": [["FIR215", "Física II", ["FIR115", "MAT215"]], ["IAI115", "Intro a la informática", []], ["MAT315", "Matemática III", ["MAT215"]], ["MSO115", "Mecánica sólidos I", ["FIR115", "MAT215"]], ["PYE115", "Probabilidad", ["MAT215"]]],
-      "Ciclo 4": [["CMI115", "Ciencia Materiales I", ["FIR115", "QTR115"]], ["FIR315", "Física III", ["FIR215", "MAT315"]], ["MAT415", "Matemática IV", ["MAT315"]], ["MSO215", "Mecánica sólidos II", ["MAT315", "MSO115"]], ["PRN115", "Programación I", ["IAI115"]]],
-      "Ciclo 5": [["ACE115", "Análisis Circuitos", ["FIR315", "MAT415"]], ["CMI215", "Ciencia Materiales II", ["CMI115"]], ["MSO315", "Mecánica sólidos III", ["MAT415", "MSO215"]], ["PRN215", "Programación II", ["PRN115"]], ["TER115", "Termodinámica I", ["FIR215", "MAT415"]], ["MFS115", "Metalurgia Soldadura", ["PDF215"], true]],
-      "Ciclo 6": [["DEM115", "Diseño Máquinas I", ["CMI215", "DIT115", "MSO315"]], ["MEL115", "Máquinas Eléctricas", ["ACE115"]], ["MEF115", "Mecánica de Fluidos", ["FIR215", "MAT415", "MSO215"]], ["PDF115", "Proc. Fabricación I", ["CMI215", "MSO315"]], ["TER215", "Termodinámica II", ["TER115"]], ["SDR115", "Sist. Refrigeración", ["TFC115"], true]],
-      "Ciclo 7": [["DEM215", "Diseño Máquinas II", ["DEM115"]], ["SEE115", "Eficiencia Energética y Sostenibilidad", ["TER215"], true], ["FEL115", "Electrónica", ["ACE115"]], ["MID115", "Máquinas Hidráulicas", ["MEF115", "MEL115"]], ["PDF215", "Proc. Fabricación II", ["PDF115"]], ["TFC115", "Transferencia Calor", ["TER215"]]],
-      "Ciclo 8": [["DEM315", "Diseño Máquinas III", ["DEM215"]], ["IEC115", "Ing. Económica", ["PYE115"]], ["ISM115", "Inst. Eléctricas", ["MEL115"]], ["MCI115", "Motores CI", ["TER215"]], ["SHN115", "Sistemas Hidráulicos", ["MID115"]], ["EFE115", "Eficiencia Energética", ["TER215"], true]]
+      "Ciclo 1": [["CGR115","Comunicación espacial gráfica",[]],["MAT115","Matemática I",[]],["MTE115","Métodos experimentales",[]],["PSI115","Psicología Social",[]]],
+      "Ciclo 2": [["DIT115","Dibujo Técnico",["CGR115"]],["FIR115","Física I",["MAT115","MTE115"]],["MAT215","Matemática II",["MAT115"]],["HSE115","Historia social y económica de El Salvador y Centroamérica",["PSI115"]],["QTR115","Química Técnica",["MTE115"]]],
+      "Ciclo 3": [["FIR215","Física II",["FIR115","MAT215"]],["IAI115","Introducción a la informática",[]],["MAT315","Matemática III",["MAT215"]],["MSO115","Mecánica de los sólidos I",["FIR115","MAT215"]],["PYE115","Probabilidad y estadística",["MAT215"]]],
+      "Ciclo 4": [["CMI115","Ciencia de los Materiales I",["FIR115","QTR115"]],["FIR315","Física III",["FIR215","MAT315"]],["MAT415","Matemática IV",["MAT315"]],["MSO215","Mecánica de los Sólidos II",["MAT315","MSO115"]],["PRN115","Programación I",["IAI115"]]],
+      "Ciclo 5": [["ACE115","Análisis de Circuitos Eléctricos",["FIR315","MAT415"]],["CMI215","Ciencia de los Materiales II",["CMI115"]],["MSO315","Mecánica de los Sólidos III",["MAT415","MSO215"]],["MFS115","Metalurgia Física de la Soldadura",["PDF215"],true],["PRN215","Programación II",["PRN115"]],["TER115","Termodinámica I",["FIR215","MAT415"]]],
+      "Ciclo 6": [["DEM115","Diseño de Elementos de Máquinas I",["CMI215","DIT115","MSO315"]],["MEL115","Máquinas Eléctricas",["ACE115"]],["MEF115","Mecánica de los Fluidos",["FIR215","MAT415","MSO215"]],["PDF115","Procesos de Fabricación I",["CMI215","MSO315"]],["SDR115","Sistemas de Refrigeración",["TFC115"],true],["TER215","Termodinámica II",["TER115"]]],
+      "Ciclo 7": [["DEM215","Diseño de Elementos de Máquinas II",["DEM115"]],["SEE115","Eficiencia Energética y Sostenibilidad",["TER215"],true],["ESN115","Energía Solar Térmica",["TFC115"],true],["FEL115","Fundamentos de Electrónica",["ACE115"]],["MID115","Máquinas Hidráulicas",["MEF115","MEL115"]],["PDF215","Procesos de Fabricación II",["PDF115"]],["TFC115","Transferencia de Calor",["TER215"]]],
+      "Ciclo 8": [["DEM315","Diseño de Elementos de Máquinas III",["DEM215"]],["EFE115","Eficiencia Energética",["TER215"],true],["END115","Ensayos No Destructivos",["PDF215"],true],["GDC115","Gestión de la Calidad",["PDF215"],true],["ISU115","Ingeniería de Superficies",["PDF215"],true],["IEC115","Ingeniería Económica",["PYE115"]],["ISM115","Instalaciones Eléctricas",["MEL115"]],["IER115","Introducción a las Energías Renovables",["MEF115","TER215"],true],["MCI115","Motores de Combustión Interna",["TER215"]],["SHN115","Sistemas Hidráulicos y Neumáticos",["MID115"]],["VMC115","Vibraciones Mecánicas",["DEM115"],true]],
+      "Ciclo 9": [["ACR115","Aceros especiales",["PDF215"],true],["AAE115","Auditorías Ambientales",[],true],["DDM115","Dinámica de Máquinas",["DEM315"],true],["ELN115","Electroneumática",["SHN115"],true],["EEO115","Energía Eólica",["MEF115","TER215"],true],["ESI115","Energía Solar",["TFC115"],true],["FAP115","Formulación y Administración de Proyectos",[]],["FDE115","Fundamentos de Economía",["HSE115","MAT215"]],["HII115","Hidráulica Industrial",["SHN115"],true],["IGS115","Ingeniería Geotérmica",[],true],["AMG115","Mecánica Aplicada Geotermia",["TFC115"],true],["MSI115","Mantenimiento Industrial",["DEM215","PDF215"]],["MDL115","Métodos de Lubricación",["DEM215","MEF115"],true],["MYC115","Metrología y Calidad",["PDF215"],true],["PLT115","Plantas Térmicas",["TFC115"],true],["REF115","Refrigeración",["TFC115"],true],["RAA115","Refrigeración y Aire Acondicionado",["TFC115"],true],["SAA115","Sistemas Aire Acondicionado",["TFC115"],true],["TGS115","Técnica de Soldadura",["DEM215","PDF215"],true],["TDF115","Técnicas de Fundición",["PDF215"],true],["TII115","Técnicas de Investigación",[],true],["TCF115","Tecnología de Fundición",["DEM215","PDF215"],true],["TTT115","Tratamientos Térmicos",["PDF215"],true],["TUT115","Turbomáquinas Térmicas",["TFC115"],true]],
+      "Ciclo 10": [["CEH115","Centrales Hidroeléctricas",["MID115"]],["DSV115","Diseño de Sistemas de Vapor",["TFC115"],true],["ERN115","Energías Renovables",["MID115","TFC115"],true],["MAE115","Mantenimiento Electromecánico",["MSI115"],true],["MCC115","Maquinado CNC",["PDF215"],true],["PIM115","Proyecto de Ingeniería Mecánica",["DEM315","FAP115"]],["SDB115","Sistemas de Bombeo",["MID115"],true],["TRT115","Tratamientos Térmicos",["DEM215","PDF215"],true],["TTM115","Tratamientos Térmicos en Metales",["PDF215"],true]]
     };
 
     const estado = JSON.parse(localStorage.getItem("malla_aprobadas") || "{}");
-    let modoCiclo = localStorage.getItem("modo_ciclo") === "true";
-    const actualizadores = [], materiasTotal = [], materiasElectivas = [], materiasMeta = [];
-
-    const cicloMap = {};
-    const desbloqueoPendiente = {};
-
-    document.getElementById("modoCiclo").checked = modoCiclo;
-    document.getElementById("modoCiclo").addEventListener("change", e => {
-      modoCiclo = e.target.checked;
-      localStorage.setItem("modo_ciclo", modoCiclo);
-    });
-
-    document.getElementById("btnAplicar").addEventListener("click", () => {
-      actualizarTodo();
-      guardarEstado();
-    });
+    const actualizadores = [];
+    const materiasTotal = [];
+    const materiasElectivas = [];
+    const ciclosPar = ["Ciclo 2", "Ciclo 4", "Ciclo 6", "Ciclo 8", "Ciclo 10"];
+    const ciclosImpar = ["Ciclo 1", "Ciclo 3", "Ciclo 5", "Ciclo 7", "Ciclo 9"];
+    const ciclosDOM = {};
 
     function guardarEstado() {
       localStorage.setItem("malla_aprobadas", JSON.stringify(estado));
     }
 
-    function crearMateria(id, nombre, requisitos = [], electiva = false, cicloNumero = 0) {
+    function crearMateria(id, nombre, requisitos = [], electiva = false) {
       requisitos = requisitos || [];
       const div = document.createElement("div");
       div.className = "materia";
@@ -68,75 +152,97 @@
         div.classList.add("electiva");
         materiasElectivas.push(id);
       }
-      materiasTotal.push(id);
-      materiasMeta.push({ id, requisitos, cicloNumero });
-      cicloMap[id] = cicloNumero;
       div.textContent = `${nombre} (${id})`;
+      materiasTotal.push(id);
 
-      div.addEventListener("click", () => {
-        estado[id] = !estado[id];
-        actualizarResumen();
-        guardarEstado();
-        actualizarVisual(div, id, requisitos, electiva, cicloNumero);
-      });
+      function actualizarEstado() {
+        let bloqueada = requisitos.length && !requisitos.every(r => estado[r]);
+        if (id === "MEF115") bloqueada = false;
 
-      return { div, actualizar: () => actualizarVisual(div, id, requisitos, electiva, cicloNumero) };
-    }
+        div.classList.remove("bloqueada", "aprobada", "pendiente");
 
-    function actualizarVisual(div, id, requisitos, electiva, cicloNumero) {
-      let bloqueada = requisitos.length && !requisitos.every(r => estado[r]);
-
-      if (modoCiclo && id !== "MEF115") {
-        const cicloImpar = cicloNumero % 2 === 1;
-        const ciclosActivos = materiasTotal.filter(cid => estado[cid])
-          .map(cid => cicloMap[cid])
-          .filter(n => n % 2 === (cicloImpar ? 1 : 0));
-        if (ciclosActivos.length && ciclosActivos.some(n => n % 2 !== cicloNumero % 2)) {
-          bloqueada = true;
+        if (estado[id]) {
+          div.classList.add("aprobada");
+          div.innerHTML = `${nombre} (${id})`;
+        } else if (bloqueada) {
+          div.classList.add("bloqueada");
+          div.innerHTML = `${nombre} (${id})`;
+          const tooltip = document.createElement("div");
+          tooltip.className = "tooltip";
+          tooltip.textContent = "Faltan: " + requisitos.filter(r => !estado[r]).join(", ");
+          div.appendChild(tooltip);
+        } else {
+          div.classList.add("pendiente");
+          div.innerHTML = `${nombre} (${id})`;
         }
       }
 
-      div.classList.remove("bloqueada", "aprobada", "pendiente");
-      if (estado[id]) {
-        div.classList.add("aprobada");
-      } else if (bloqueada) {
-        div.classList.add("bloqueada");
-      } else {
-        div.classList.add("pendiente");
-      }
+      div.addEventListener("click", () => {
+        if (div.classList.contains("bloqueada")) return;
+        estado[id] = !estado[id];
+        guardarEstado();
+        actualizarTodo();
+      });
+
+      actualizarEstado();
+      return { div, actualizarEstado };
+    }
+
+    function actualizarResumen() {
+      const aprobadas = materiasTotal.filter(id => estado[id]);
+      const obligatorias = materiasTotal.filter(id => !materiasElectivas.includes(id));
+      const electivasAprobadas = materiasElectivas.filter(id => estado[id]);
+      const total = obligatorias.length + Math.min(5, materiasElectivas.length);
+      const completadas = aprobadas.filter(id =>
+        !materiasElectivas.includes(id) ||
+        (materiasElectivas.includes(id) && electivasAprobadas.indexOf(id) < 5)
+      ).length;
+      const percent = ((completadas / total) * 100).toFixed(1);
+      document.getElementById("resumen").textContent =
+        `${completadas} materias aprobadas de ${total} (${percent}%)`;
+    }
+
+    function actualizarTodo() {
+      actualizadores.forEach(fn => fn());
+      actualizarResumen();
     }
 
     const malla = document.getElementById("malla");
     for (const ciclo in data) {
       const col = document.createElement("div");
       col.className = "ciclo";
+      col.dataset.ciclo = ciclo;
       const title = document.createElement("h2");
       title.textContent = ciclo;
       col.appendChild(title);
-      const numero = parseInt(ciclo.match(/\d+/)?.[0]);
-
       data[ciclo].forEach(([id, nombre, requisitos, electiva]) => {
-        const { div, actualizar } = crearMateria(id, nombre, requisitos, electiva, numero);
-        actualizadores.push(actualizar);
+        const { div, actualizarEstado } = crearMateria(id, nombre, requisitos, electiva);
         col.appendChild(div);
+        actualizadores.push(actualizarEstado);
       });
+      ciclosDOM[ciclo] = col;
       malla.appendChild(col);
     }
 
-    function actualizarResumen() {
-      const aprobadas = materiasTotal.filter(id => estado[id]);
-      const noElectivaAprob = aprobadas.filter(id => !materiasElectivas.includes(id)).length;
-      const electivaAprob = aprobadas.filter(id => materiasElectivas.includes(id)).length;
-      const totalReales = materiasTotal.filter(id => !materiasElectivas.includes(id)).length + 5;
-      const progreso = Math.min(noElectivaAprob + Math.min(5, electivaAprob), totalReales);
-      const percent = ((progreso / totalReales) * 100).toFixed(1);
-      document.getElementById("resumen").textContent =
-        `${progreso} materias aprobadas de ${totalReales} (${percent}%)`;
+    function mostrarTodos() {
+      Object.values(ciclosDOM).forEach(div => div.classList.remove("oculto"));
     }
 
-    function actualizarTodo() {
-      actualizadores.forEach(fn => fn());
-      actualizarResumen();
+    function mostrarImpares() {
+      for (const ciclo in ciclosDOM) {
+        ciclosDOM[ciclo].classList.toggle("oculto", !ciclosImpar.includes(ciclo));
+      }
+    }
+
+    function mostrarPares() {
+      for (const ciclo in ciclosDOM) {
+        ciclosDOM[ciclo].classList.toggle("oculto", !ciclosPar.includes(ciclo));
+      }
+    }
+
+    function desbloquearPorAprobadas() {
+      actualizarTodo();
+      alert("Las materias se actualizaron según tus materias aprobadas.");
     }
 
     actualizarTodo();
