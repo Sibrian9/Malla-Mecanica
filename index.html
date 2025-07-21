@@ -91,11 +91,11 @@
 
   <script>
     const data = {
-       "Ciclo 1": [
-        ["CGR115", "Comunicación espacial gráfica"],
-        ["MAT115", "Matemática I"],
-        ["MTE115", "Métodos experimentales"],
-        ["PSI115", "Psicología Social"]
+      "Ciclo 1": [
+        ["CGR115", "Comunicación espacial gráfica", []],
+        ["MAT115", "Matemática I", []],
+        ["MTE115", "Métodos experimentales", []],
+        ["PSI115", "Psicología Social", []]
       ],
       "Ciclo 2": [
         ["DIT115", "Dibujo Técnico", ["CGR115"]],
@@ -106,7 +106,7 @@
       ],
       "Ciclo 3": [
         ["FIR215", "Física II", ["FIR115", "MAT215"]],
-        ["IAI115", "Introducción a la informática"],
+        ["IAI115", "Introducción a la informática", []],
         ["MAT315", "Matemática III", ["MAT215"]],
         ["MSO115", "Mecánica de los sólidos I", ["FIR115", "MAT215"]],
         ["PYE115", "Probabilidad y estadística", ["MAT215"]]
@@ -151,7 +151,7 @@
         ["ISU115", "Ingeniería de Superficies", ["PDF215"], true],
         ["IEC115", "Ingeniería Económica", ["PYE115"]],
         ["ISM115", "Instalaciones Eléctricas", ["MEL115"]],
-        ["IER115", "Energías Renovables", ["MEF115", "TER215"], true],
+        ["IER115", "Introducción a las Energías Renovables", ["MEF115", "TER215"], true],
         ["MCI115", "Motores de Combustión Interna", ["TER215"]],
         ["SHN115", "Sistemas Hidráulicos y Neumáticos", ["MID115"]],
         ["VMC115", "Vibraciones Mecánicas", ["DEM115"], true]
@@ -163,7 +163,7 @@
         ["ELN115", "Electroneumática", ["SHN115"], true],
         ["EEO115", "Energía Eólica", ["MEF115", "TER215"], true],
         ["ESI115", "Energía Solar", ["TFC115"], true],
-        ["FAP115", "Formulación y Administración de Proyectos"],
+        ["FAP115", "Formulación y Administración de Proyectos", []],
         ["FDE115", "Fundamentos de Economía", ["HSE115", "MAT215"]],
         ["HII115", "Hidráulica Industrial", ["SHN115"], true],
         ["IGS115", "Ingeniería Geotérmica", [], true],
@@ -196,15 +196,15 @@
     };
 
     const estado = JSON.parse(localStorage.getItem("malla_aprobadas") || "{}");
+    const actualizadores = [];
+    const materiasTotal = [];
 
     function guardarEstado() {
       localStorage.setItem("malla_aprobadas", JSON.stringify(estado));
     }
 
-    const actualizadores = [];
-    const materiasTotal = [];
-
     function crearMateria(id, nombre, requisitos = [], electiva = false) {
+      requisitos = requisitos || [];
       const div = document.createElement("div");
       div.className = "materia";
       if (electiva) div.classList.add("electiva");
@@ -251,7 +251,8 @@
       const aprobadas = materiasTotal.filter(id => estado[id]);
       const total = materiasTotal.length;
       const percent = ((aprobadas.length / total) * 100).toFixed(1);
-      document.getElementById("resumen").textContent = `${aprobadas.length} materias aprobadas de ${total} (${percent}%)`;
+      document.getElementById("resumen").textContent =
+        `${aprobadas.length} materias aprobadas de ${total} (${percent}%)`;
     }
 
     const malla = document.getElementById("malla");
@@ -261,7 +262,7 @@
       const title = document.createElement("h2");
       title.textContent = ciclo;
       col.appendChild(title);
-      data[ciclo].forEach(([id, nombre, requisitos = [], electiva = false]) => {
+      data[ciclo].forEach(([id, nombre, requisitos, electiva]) => {
         const { div, actualizarEstado } = crearMateria(id, nombre, requisitos, electiva);
         col.appendChild(div);
         actualizadores.push(actualizarEstado);
